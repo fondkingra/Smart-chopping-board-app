@@ -1,39 +1,39 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { Stack, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import SplashScreen from "./splash";
+import { useFonts } from "expo-font";
+import { getUser } from "../utils/auth"; // ✅ Import local auth function
 
-import { useColorScheme } from '@/hooks/useColorScheme';
+export default function Layout() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
-
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+  // ✅ Load custom font
+  const [fontsLoaded] = useFonts({
+    Audiowide: require("../assets/fonts/Audiowide-Regular.ttf"),
   });
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+    const checkAuth = async () => {
+      const loggedInUser = await getUser();
+      setUser(loggedInUser);
+      setLoading(false);
+
+      // ✅ Redirect based on authentication status
+      if (!loggedInUser) {
+        router.replace("/login"); // If no user, go to login
+      } else {
+        router.replace("/dashboard"); // ✅ Change this to your actual home screen
+      }
+    };
+
+    if (fontsLoaded) {
+      setTimeout(checkAuth, 2000); // Reduce splash time to 2 seconds
     }
-  }, [loaded]);
+  }, [fontsLoaded]);
 
-  if (!loaded) {
-    return null;
-  }
+  if (!fontsLoaded || loading) return <SplashScreen />; // ✅ Show splash first
 
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
